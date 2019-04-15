@@ -1049,6 +1049,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Set new head.
 	if status == CanonStatTy {
 		bc.insert(block)
+
+		// 此处区块写入后进行交易信息判断，并判断是否存在监控的交易信息
+
 	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
