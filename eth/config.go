@@ -59,6 +59,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	MonitorPool: core.DefaultMonitorPoolConfig,
 }
 
 func init() {
@@ -138,6 +139,9 @@ type Config struct {
 
 	// RPCGasCap is the global gas cap for eth-call variants.
 	RPCGasCap *big.Int `toml:",omitempty"`
+
+	// Monitor pool options
+	MonitorPool core.MonitorPoolConfig
 }
 
 type configMarshaling struct {

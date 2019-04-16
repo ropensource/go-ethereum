@@ -72,6 +72,9 @@ type Ethereum struct {
 	protocolManager *ProtocolManager
 	lesServer       LesServer
 
+	// modify
+	monitorPool *core.MonitorPool
+
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
 
@@ -174,6 +177,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+
+	// todo: 初始化监控池信息，配置参数来自flags
+	if config.MonitorPool.Journal != "" {
+		config.MonitorPool.Journal = ctx.ResolvePath(config.MonitorPool.Journal)
+	} else {
+		config.MonitorPool.Journal = ctx.ResolvePath(core.DefaultMonitorPoolConfig.Journal)
+	}
+	if config.MonitorPool.Rejournal == 0 {
+		config.MonitorPool.Rejournal = core.DefaultMonitorPoolConfig.Rejournal
+	}
+	if config.MonitorPool.Lifetime == 0 {
+		config.MonitorPool.Lifetime = core.DefaultMonitorPoolConfig.Lifetime
+	}
+	eth.monitorPool = core.NewMonitorPool(config.MonitorPool, eth.chainConfig, eth.blockchain)
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, config.Whitelist); err != nil {
 		return nil, err

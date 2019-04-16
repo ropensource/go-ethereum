@@ -10,6 +10,7 @@ type TransactionWrap struct {
 	Bn 			uint64
 	FuncName 	string
 	TaskId		string
+	KeyIndex	uint64
 }
 
 type extwrapper struct {
@@ -17,10 +18,15 @@ type extwrapper struct {
 	Bn 			uint64
 	FuncName 	string
 	TaskId		string
+	KeyIndex	uint64
 }
 
 func (t *TransactionWrap) GetBlockNumber() uint64 {
 	return t.Bn
+}
+
+func (t *TransactionWrap) GetKeyIndex() uint64 {
+	return t.KeyIndex
 }
 
 func (t *TransactionWrap) DecodeRLP(s *rlp.Stream) error {
@@ -28,7 +34,7 @@ func (t *TransactionWrap) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&ew); err != nil {
 		return err
 	}
-	t.Transaction, t.Bn, t.FuncName, t.TaskId = ew.Transaction, ew.Bn, ew.FuncName, ew.TaskId
+	t.Transaction, t.Bn, t.FuncName, t.TaskId, t.KeyIndex = ew.Transaction, ew.Bn, ew.FuncName, ew.TaskId, ew.KeyIndex
 	//fmt.Println("Decode RLP, bn:", t.Bn)
 	return nil
 }
@@ -40,6 +46,7 @@ func (b *TransactionWrap) EncodeRLP(w io.Writer) error {
 		Bn: b.Bn,
 		FuncName: b.FuncName,
 		TaskId: b.TaskId,
+		KeyIndex: b.KeyIndex,
 	})
 }
 

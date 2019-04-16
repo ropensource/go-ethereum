@@ -12,26 +12,26 @@ import (
 // goal is to allow the transaction journal to write into a fake journal when
 // loading transactions on startup without printing warnings due to no file
 // being read for write.
-type devMPCNull struct{}
+type devMonitorNull struct{}
 
-func (*devMPCNull) Write(p []byte) (n int, err error) { return len(p), nil }
-func (*devMPCNull) Close() error                      { return nil }
+func (*devMonitorNull) Write(p []byte) (n int, err error) { return len(p), nil }
+func (*devMonitorNull) Close() error                      { return nil }
 
 // monitorJournal is a rotating log of transactions with the aim of storing locally
 // created transactions to allow non-executed ones to survive node restarts.
 type monitorJournal struct {
-	path   string         // Filesystem path to store the mpc transactions at
-	writer io.WriteCloser // Output stream to write new mpc transactions into
+	path   string         // Filesystem path to store the monitor transactions at
+	writer io.WriteCloser // Output stream to write new monitor transactions into
 }
 
-// newTxJournal creates a new mpc transaction journal to
-func newMPCJournal(path string) *monitorJournal {
+// newTxJournal creates a new monitor transaction journal to
+func newMonitorJournal(path string) *monitorJournal {
 	return &monitorJournal{
 		path: path,
 	}
 }
 
-// load parses a mpc transaction journal dump from disk, loading its contents into
+// load parses a monitor transaction journal dump from disk, loading its contents into
 // the specified pool.
 func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) error {
 
@@ -40,7 +40,7 @@ func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) 
 		return nil
 	}
 
-	// Open the journal for loading any past mpc transactions
+	// Open the journal for loading any past monitor transactions
 	input, err := os.Open(journal.path)
 	if err != nil {
 		return err
@@ -48,20 +48,20 @@ func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) 
 	defer func() { input.Close() }()
 
 	// Temporaily discard any journal additions(dont't double add on load)
-	journal.writer = new(devMPCNull)
+	journal.writer = new(devMonitorNull)
 	defer func() { journal.writer = nil }()
 
 	// Inject all transactions from the journal into the pool
 	stream := rlp.NewStream(input, 0)
 	total, dropped := 0, 0
 
-	// Create a method to load a limited batch of mpc transactions and bump
+	// Create a method to load a limited batch of monitor transactions and bump
 	// the appropriate progress counters. Then use this method to load all the
-	// journaled mpc transactions in small-ish batches.
+	// journaled monitor transactions in small-ish batches.
 	loadBatch := func(txs types.TransactionWraps) {
 		for _, err := range add(txs) {
 			if err != nil {
-				log.Debug("Failed to add journaled mpc transaction", "err", err)
+				log.Debug("Failed to add journaled monitor transaction", "err", err)
 				dropped++
 			}
 		}
@@ -72,7 +72,7 @@ func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) 
 		batch   types.TransactionWraps
 	)
 	for {
-		// Parse the next mpc transaction and terminate on error
+		// Parse the next monitor transaction and terminate on error
 		tx := new(types.TransactionWrap)
 		if err = stream.Decode(tx); err != nil {
 			if err != io.EOF {
@@ -84,7 +84,7 @@ func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) 
 			break
 		}
 
-		// New mpc transaction parsed, queue up for later, import if threshold is reached
+		// New monitor transaction parsed, queue up for later, import if threshold is reached
 		total++
 
 		if batch = append(batch, tx); batch.Len() > 1024 {
@@ -92,12 +92,12 @@ func (journal *monitorJournal) load(add func([]*types.TransactionWrap) []error) 
 			batch = batch[:0]
 		}
 	}
-	log.Info("Loaded local mpc transaction journal", "mpc transactions", total, "dropped", dropped)
+	log.Info("Loaded local monitor transaction journal", "monitor transactions", total, "dropped", dropped)
 
 	return failure
 }
 
-// insert adds the specified mpc transaction to the local disk journal.
+// insert adds the specified monitor transaction to the local disk journal.
 func (journal *monitorJournal) insert(tx *types.TransactionWrap) error {
 	if journal.writer == nil {
 		return errNoActiveJournal
@@ -108,8 +108,8 @@ func (journal *monitorJournal) insert(tx *types.TransactionWrap) error {
 	return nil
 }
 
-// rotate regenerates the mpc transaction journal based on the current contents of
-// the mpc transaction pool.
+// rotate regenerates the monitor transaction journal based on the current contents of
+// the monitor transaction pool.
 func (journal *monitorJournal) rotate(all types.TransactionWraps) error {
 	// Close the current journal (if any is open)
 	if journal.writer != nil {
@@ -119,7 +119,7 @@ func (journal *monitorJournal) rotate(all types.TransactionWraps) error {
 		journal.writer = nil
 	}
 
-	// Generate a new journal with the contents of the current mpc pool
+	// Generate a new journal with the contents of the current monitor pool
 	replacement, err := os.OpenFile(journal.path+".new", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
@@ -144,11 +144,11 @@ func (journal *monitorJournal) rotate(all types.TransactionWraps) error {
 		return err
 	}
 	journal.writer = sink
-	log.Trace("Regenerated local mpc transaction journal", "mpc transactions", journaled)
+	log.Trace("Regenerated local monitor transaction journal", "monitor transactions", journaled)
 	return nil
 }
 
-// close flushes the mpc transaction journal contents to disk and closes the file.
+// close flushes the monitor transaction journal contents to disk and closes the file.
 func (journal *monitorJournal) close() error {
 	var err error
 	if journal.writer != nil {

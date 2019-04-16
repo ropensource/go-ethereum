@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/pborman/uuid"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -591,6 +592,22 @@ var (
 	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
 		Name:  "shh.restrict-light",
 		Usage: "Restrict connection between two whisper light clients",
+	}
+
+	// todo: 调整
+	MonitorProxyAddr = cli.StringFlag{
+		Name: "monitor.address",
+		Usage: "the address for proxy",
+		Value: "",
+	}
+	MonitorPrivateKeysFlag = cli.StringFlag{
+		Name:  "monitor.keys",
+		Usage: "Comma separated list of keys to load",
+		Value: "",
+	}
+	MonitorEnabledFlag = cli.BoolFlag{
+		Name:  "monitor",
+		Usage: "Enable monitor mechanism",
 	}
 
 	// Metrics flags
@@ -1184,6 +1201,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
+	// 读取flags命令行传入
+	setMonitorPool(ctx, &cfg.MonitorPool)
 	setEthash(ctx, cfg)
 	setWhitelist(ctx, cfg)
 
@@ -1311,6 +1330,34 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
+	}
+}
+
+func setMonitorPool(ctx *cli.Context, cfg *core.MonitorPoolConfig) {
+	if ctx.GlobalIsSet(MonitorEnabledFlag.Name) {
+		cfg.MonitorEnable = ctx.GlobalBool(MonitorEnabledFlag.Name)
+	}
+
+	// private
+	keys := strings.Split(ctx.GlobalString(MonitorPrivateKeysFlag.Name), ",")
+	// 0x.....,0x.....,0x....
+	for _, key := range keys {
+		if trimmed := strings.TrimSpace(key); trimmed != "" {
+			var privatekey *ecdsa.PrivateKey
+			var err error
+			if privatekey, err = crypto.HexToECDSA(key); err != nil {
+				Fatalf("Option %q: %v", NodeKeyHexFlag.Name, err)
+			}
+			id := uuid.NewRandom()
+			cfg.MonitorKeys = append(cfg.MonitorKeys, &keystore.Key{
+				PrivateKey: privatekey,
+				Id: id,
+				Address:    crypto.PubkeyToAddress(privatekey.PublicKey),
+			})
+		}
+	}
+	if addr := ctx.GlobalString(MonitorProxyAddr.Name); addr != "" {
+		cfg.ProxyAddr = common.HexToAddress(addr)
 	}
 }
 
