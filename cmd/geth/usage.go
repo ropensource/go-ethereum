@@ -249,6 +249,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "MONITOR CONFIG",
+		Flags: []cli.Flag{
+			utils.MonitorEnabledFlag,
+			utils.MonitorProxyAddr,
+			utils.MonitorPrivateKeysFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

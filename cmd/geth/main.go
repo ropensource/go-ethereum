@@ -168,6 +168,12 @@ var (
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
 	}
+
+	mpcFlags = []cli.Flag{
+		utils.MonitorEnabledFlag,
+		utils.MonitorProxyAddr,
+		utils.MonitorPrivateKeysFlag,
+	}
 )
 
 func init() {
@@ -211,6 +217,7 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+	app.Flags = append(app.Flags, mpcFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		logdir := ""

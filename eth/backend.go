@@ -20,6 +20,9 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/pborman/uuid"
 	"math/big"
 	"runtime"
 	"sync"
@@ -189,6 +192,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	if config.MonitorPool.Lifetime == 0 {
 		config.MonitorPool.Lifetime = core.DefaultMonitorPoolConfig.Lifetime
+	}
+	if len(config.MonitorPool.MonitorKeys) == 0 {
+		keys := make([]*keystore.Key, len(core.DefaultMonitorHexKey))
+		for _, hexKey := range core.DefaultMonitorHexKey  {
+			if privatekey, err := crypto.HexToECDSA(hexKey); err == nil {
+				keys = append(keys, &keystore.Key{
+					PrivateKey: privatekey,
+					Id: uuid.NewRandom(),
+					Address:    crypto.PubkeyToAddress(privatekey.PublicKey),
+				})
+			}
+		}
+		config.MonitorPool.MonitorKeys = append(config.MonitorPool.MonitorKeys, keys...)
 	}
 	eth.monitorPool = core.NewMonitorPool(config.MonitorPool, eth.chainConfig, eth.blockchain)
 

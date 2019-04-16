@@ -52,6 +52,10 @@ type MonitorPoolConfig struct {
 	ProxyAddr	common.Address
 }
 
+var DefaultMonitorHexKey = []string{
+	"0x668a369e87c01da5bfca9851e6ee86d760e17ee7912d77b7dffe8e0cdf63bcb5",
+}
+
 var DefaultMonitorPoolConfig = MonitorPoolConfig{
 	Journal:     "monitor_transactions.rlp",
 	Rejournal:   time.Second * 4,
