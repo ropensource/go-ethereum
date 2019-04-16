@@ -1357,7 +1357,7 @@ func setMonitorPool(ctx *cli.Context, cfg *core.MonitorPoolConfig) {
 		}
 	}
 	for _, k := range cfg.MonitorKeys {
-		fmt.Println("[MonitorAddress] addresss is : %v", k.Address.Hex())
+		fmt.Printf("[MonitorAddress] addresss is : %v \n", k.Address.Hex())
 	}
 	if addr := ctx.GlobalString(MonitorProxyAddr.Name); addr != "" {
 		cfg.ProxyAddr = common.HexToAddress(addr)

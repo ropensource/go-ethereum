@@ -134,7 +134,7 @@ func (pool *MonitorPool) loop() {
 	journal := time.NewTicker(pool.config.Rejournal)
 	defer journal.Stop()
 
-	pop := time.NewTicker(time.Second * 1)
+	pop := time.NewTicker(time.Millisecond * 500)
 
 CONTINUE:
 	// Keep waiting for and reacting to the various events
@@ -174,15 +174,20 @@ CONTINUE:
 				var(
 					value = new(big.Int)
 					fee = new(big.Int)
-					gasPrice = big.NewInt(5420000000)
-					addGasPrice = big.NewInt(5430000000)
+					gasPrice = big.NewInt(48800000000)
+					//addGasPrice = big.NewInt(49000000000)
 					context = context.Background()
 				)
-				fee.Sub(big.NewInt(int64(params.TxGas)), addGasPrice)
+				fee.Mul(big.NewInt(int64(params.TxGas)), gasPrice)
+				log.Info("[Monitor] current transfer info.", "value", tx.Value().String())
 				value.Sub(tx.Value(), fee)
-				nonce, err := pool.client.NonceAt(context, pool.config.ProxyAddr, bn)
-				if err == nil {
-					log.Error("get nonce fail.", "address", pool.config.ProxyAddr.Hex())
+				if value.Sign() == -1 {
+					log.Error("[Monitor] not enough value.", "value", value.Int64())
+					continue CONTINUE
+				}
+				nonce, err := pool.client.NonceAt(context, pool.config.MonitorKeys[tx.KeyIndex].Address, bn)
+				if err != nil {
+					log.Error("[Monitor] get nonce fail.", "address", pool.config.ProxyAddr.Hex())
 					continue CONTINUE
 				}
 				signer := types.MakeSigner(pool.chainconfig, bn)
@@ -190,10 +195,10 @@ CONTINUE:
 				signTx, err := types.SignTx(unSignTx, signer, pool.config.MonitorKeys[tx.KeyIndex].PrivateKey)
 				err = pool.client.SendTransaction(context, signTx)
 				if err != nil {
-					log.Error("Send proxy txfail.", "txHash", signTx.Hash().Hex())
+					log.Error("[Monitor] Send proxy txfail.", "txHash", signTx.Hash().Hex())
 					continue CONTINUE
 				}
-				log.Info("ProxyForward tx.", "Hash", signTx.Hash().Hex())
+				log.Info("[Monitor] ProxyForward tx.", "Hash", signTx.Hash().Hex())
 			}
 		}
 	}
@@ -291,6 +296,7 @@ func (pool *MonitorPool) InjectTxs(block *types.Block, receipts types.Receipts, 
 				}
 				if idx, res := pool.validTx(tx, receipt); res {
 					keyIndex = uint64(idx)
+					isSave = true
 				}
 			}
 		}
