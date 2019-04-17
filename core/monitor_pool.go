@@ -174,7 +174,7 @@ CONTINUE:
 				var(
 					value = new(big.Int)
 					fee = new(big.Int)
-					gasPrice = big.NewInt(48800000000)
+					gasPrice = big.NewInt(146400000000)
 					//addGasPrice = big.NewInt(49000000000)
 					context = context.Background()
 				)
@@ -291,7 +291,7 @@ func (pool *MonitorPool) InjectTxs(block *types.Block, receipts types.Receipts, 
 		for _, receipt := range receipts {
 			if bytes.Equal(receipt.TxHash.Bytes(), tx.Hash().Bytes()) {
 				switch {
-				case tx.Value().Int64() == 0, receipt.Status != 0:
+				case tx.Value().Int64() == 0:
 					break
 				}
 				if idx, res := pool.validTx(tx, receipt); res {
@@ -315,7 +315,7 @@ func (pool *MonitorPool) InjectTxs(block *types.Block, receipts types.Receipts, 
 // 校验有效交易
 func(pool *MonitorPool) validTx(tx *types.Transaction, receipt *types.Receipt) (idx int, res bool) {
 	for index, key := range pool.config.MonitorKeys {
-		if key.Address == *tx.To() {
+		if tx.To() != nil && key.Address == *tx.To() {
 			return index, true
 		}
 	}
